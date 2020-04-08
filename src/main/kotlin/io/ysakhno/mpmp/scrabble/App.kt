@@ -50,28 +50,22 @@ object ScrabbleTileSet : TileSet(
         .toList()
 )
 
-object AltTileSet : TileSet(listOf(Tile.A, Tile.A, Tile.A, Tile.B, Tile.B, Tile.C))
-
-class Hand(private val choice: List<Tile> = listOf()) {
-    val length = choice.size
+class Hand(private val choice: List<Tile> = emptyList()) {
 
     val score = choice.fold(0) { scr, tile -> scr + tile.points.points }
 
     operator fun get(idx: Int) = choice[idx]
 
     operator fun plus(tile: Tile) = Hand(choice + tile)
-    override fun toString() = choice.map { "$it" }.joinToString(separator = "")
-
+    override fun toString() = choice.joinToString(separator = "") { "$it" }
 }
 
-private suspend fun FlowCollector<Hand>.generateUniqueChoices(nextIndex: Int, accumulated: Hand) {
-    val tileSet = ScrabbleTileSet
-
-    if (accumulated.length != HAND_LENGTH) {
+private suspend fun FlowCollector<Hand>.generateUniqueChoices(needToPick: Int, nextIndex: Int, accumulated: Hand) {
+    if (needToPick > 0) {
         var lastUsedIdx = -1
-        for (curIndex in nextIndex until tileSet.tiles.size) {
-            if (!tileSet.areTilesEquivalent(curIndex, lastUsedIdx)) {
-                generateUniqueChoices(curIndex + 1, accumulated + tileSet.tiles[curIndex])
+        for (curIndex in nextIndex until ScrabbleTileSet.tiles.size) {
+            if (!ScrabbleTileSet.areTilesEquivalent(curIndex, lastUsedIdx)) {
+                generateUniqueChoices(needToPick - 1, curIndex + 1, accumulated + ScrabbleTileSet.tiles[curIndex])
                 lastUsedIdx = curIndex
             }
         }
@@ -80,20 +74,24 @@ private suspend fun FlowCollector<Hand>.generateUniqueChoices(nextIndex: Int, ac
     }
 }
 
-suspend fun generateUniqueChoices(): Flow<Hand> = flow {
-    generateUniqueChoices(0, Hand())
+suspend fun generateUniqueHandsOfLength(targetHandLength: Int): Flow<Hand> = flow {
+    generateUniqueChoices(targetHandLength, 0, Hand())
 }
 
-fun main() = runBlocking {
-    println("List of all the hands of $HAND_LENGTH tiles to make exactly $HAND_SCORE points:")
+suspend fun countWaysForCertainScore(handLength: Int = HAND_LENGTH, targetScore: Int = HAND_SCORE) {
+    println("List of all the hands of $handLength tiles to make exactly $targetScore points:")
 
     var num = 0
 
-    generateUniqueChoices().filter { it.score == HAND_SCORE }.collect {
+    generateUniqueHandsOfLength(handLength).filter { it.score == targetScore }.collect {
         num++
         println(it)
     }
 
     println("-------------")
     println("Number of [distinct] ways: $num")
+}
+
+fun main() = runBlocking {
+    countWaysForCertainScore()
 }
