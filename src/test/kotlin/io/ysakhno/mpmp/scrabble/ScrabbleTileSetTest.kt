@@ -11,11 +11,11 @@ package io.ysakhno.mpmp.scrabble
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 
-class TileSetTest : ShouldSpec({
+class ScrabbleTileSetTest : ShouldSpec({
 
-    "TileSet" {
+    "ScrabbleTileSet" {
         should("be") {
-            "$TileSet" shouldBe """
+            "$ScrabbleTileSet" shouldBe """
                 AAAAAAAAAB
                 BCCDDDDEEE
                 EEEEEEEEEF
