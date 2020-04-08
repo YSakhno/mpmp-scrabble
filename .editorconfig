@@ -1,0 +1,27 @@
+##
+## Solver for Matt Parker's Maths Puzzle (MPMP): Scrabble
+##
+## See this YouTube video for more info about the puzzle itself: https://youtu.be/JaXo_i3ktwM
+##
+## Written in 2020 by Yuri Sakhno.
+##
+
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+max_line_length = 120
+end_of_line = lf
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.{kt, kts, kt.spec, kts.spec}]
+continuation_indent_size = 8
+
+[*.bat]
+end_of_line = crlf
+
+[*.md]
+trim_trailing_whitespace = false
