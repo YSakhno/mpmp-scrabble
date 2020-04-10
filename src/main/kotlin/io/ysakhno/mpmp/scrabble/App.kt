@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
+import org.apache.commons.lang3.mutable.MutableLong
+import java.util.TreeMap
 
 const val HAND_LENGTH = 7
 const val HAND_SCORE = 46
@@ -78,6 +80,20 @@ suspend fun generateUniqueHandsOfLength(targetHandLength: Int): Flow<Hand> = flo
     generateUniqueChoices(targetHandLength, 0, Hand())
 }
 
+suspend inline fun <T, K, M : MutableMap<in K, MutableLong>> Flow<T>.countByTo(
+    destination: M,
+    crossinline keySelector: suspend (T) -> K
+) = collect { value ->
+    val key = keySelector(value)
+    val count = destination[key]
+
+    if (count != null) {
+        count.increment()
+    } else {
+        destination.put(key, MutableLong(1L))
+    }
+}.let { destination }
+
 suspend fun countWaysForCertainScore(handLength: Int = HAND_LENGTH, targetScore: Int = HAND_SCORE) {
     println("List of all the hands of $handLength tiles to make exactly $targetScore points:")
 
@@ -92,6 +108,23 @@ suspend fun countWaysForCertainScore(handLength: Int = HAND_LENGTH, targetScore:
     println("Number of [distinct] ways: $num")
 }
 
+suspend fun countByScore(handLength: Int = HAND_LENGTH) {
+    println("List of all counts, by each score:")
+
+    var totalNum = 0L
+    val countsByScore = generateUniqueHandsOfLength(handLength).countByTo(TreeMap()) { it.score }
+
+    countsByScore.forEach { (score, num) ->
+        totalNum += num.value
+        println("${Points(score)} -> $num ways")
+    }
+
+    println("-------------")
+    println("Total number of [distinct] ways: $totalNum")
+}
+
 fun main() = runBlocking {
     countWaysForCertainScore()
+    println()
+    countByScore()
 }
