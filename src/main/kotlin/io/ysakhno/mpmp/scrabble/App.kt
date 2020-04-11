@@ -65,7 +65,7 @@ class Hand(private val choice: List<Tile> = emptyList()) {
 private suspend fun FlowCollector<Hand>.generateUniqueChoices(needToPick: Int, nextIndex: Int, accumulated: Hand) {
     if (needToPick > 0) {
         var lastUsedIdx = -1
-        for (curIndex in nextIndex until ScrabbleTileSet.tiles.size) {
+        for (curIndex in nextIndex..ScrabbleTileSet.tiles.size - needToPick) {
             if (!ScrabbleTileSet.areTilesEquivalent(curIndex, lastUsedIdx)) {
                 generateUniqueChoices(needToPick - 1, curIndex + 1, accumulated + ScrabbleTileSet.tiles[curIndex])
                 lastUsedIdx = curIndex
