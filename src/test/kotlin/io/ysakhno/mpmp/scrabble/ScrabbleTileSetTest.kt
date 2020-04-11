@@ -28,5 +28,9 @@ class ScrabbleTileSetTest : ShouldSpec({
                 VVWWXYYZ__
             """.trimIndent()
         }
+
+        should("have 187 points total") {
+            ScrabbleTileSet.tiles.sumBy { it.points.points } shouldBe MAX_SCORE_POSSIBLE
+        }
     }
 })

@@ -11,14 +11,13 @@ package io.ysakhno.mpmp.scrabble
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import org.apache.commons.lang3.mutable.MutableLong
-import java.util.TreeMap
+import kotlin.time.ExperimentalTime
+import kotlin.time.measureTimedValue
 
-const val HAND_LENGTH = 7
-const val HAND_SCORE = 46
+const val MAX_SCORE_POSSIBLE = 187
 
 inline class Points(val points: Int) : Comparable<Points> {
     override fun compareTo(other: Points) = this.points.compareTo(other.points)
@@ -52,32 +51,22 @@ object ScrabbleTileSet : TileSet(
         .toList()
 )
 
-class Hand(private val choice: List<Tile> = emptyList()) {
-
-    val score = choice.fold(0) { scr, tile -> scr + tile.points.points }
-
-    operator fun get(idx: Int) = choice[idx]
-
-    operator fun plus(tile: Tile) = Hand(choice + tile)
-    override fun toString() = choice.joinToString(separator = "") { "$it" }
-}
-
-private suspend fun FlowCollector<Hand>.generateUniqueChoices(needToPick: Int, nextIndex: Int, accumulated: Hand) {
+private suspend fun FlowCollector<Int>.generateScores(needToPick: Int, nextIndex: Int, score: Int) {
     if (needToPick > 0) {
         var lastUsedIdx = -1
         for (curIndex in nextIndex..ScrabbleTileSet.tiles.size - needToPick) {
             if (!ScrabbleTileSet.areTilesEquivalent(curIndex, lastUsedIdx)) {
-                generateUniqueChoices(needToPick - 1, curIndex + 1, accumulated + ScrabbleTileSet.tiles[curIndex])
+                generateScores(needToPick - 1, curIndex + 1, score + ScrabbleTileSet.tiles[curIndex].points.points)
                 lastUsedIdx = curIndex
             }
         }
     } else {
-        emit(accumulated)
+        emit(score)
     }
 }
 
-suspend fun generateUniqueHandsOfLength(targetHandLength: Int): Flow<Hand> = flow {
-    generateUniqueChoices(targetHandLength, 0, Hand())
+suspend fun generateUniqueHandsOfLength(targetHandLength: Int): Flow<Int> = flow {
+    generateScores(targetHandLength, 0, 0)
 }
 
 suspend inline fun <T, K, M : MutableMap<in K, MutableLong>> Flow<T>.countByTo(
@@ -94,37 +83,44 @@ suspend inline fun <T, K, M : MutableMap<in K, MutableLong>> Flow<T>.countByTo(
     }
 }.let { destination }
 
-suspend fun countWaysForCertainScore(handLength: Int = HAND_LENGTH, targetScore: Int = HAND_SCORE) {
-    println("List of all the hands of $handLength tiles to make exactly $targetScore points:")
+@OptIn(ExperimentalTime::class)
+suspend fun countAllUpTo(minHandLength: Int = 0, maxHandLength: Int = 12) {
+    val table: MutableList<MutableList<Long>> = MutableList(MAX_SCORE_POSSIBLE + 1) { MutableList(101) { 0L } }
 
-    var num = 0
+    println("Counting all hands of length:")
+    for (length in minHandLength.coerceAtLeast(0)..maxHandLength.coerceAtMost(50)) {
+        print("\t$length...")
+        val (countsByScore, time) = measureTimedValue {
+            generateUniqueHandsOfLength(length).countByTo(HashMap()) { it }
+        }
+        println("\tdone in $time")
 
-    generateUniqueHandsOfLength(handLength).filter { it.score == targetScore }.collect {
-        num++
-        println(it)
+        for (score in 0..MAX_SCORE_POSSIBLE) {
+            if (countsByScore.containsKey(score)) {
+                val count = countsByScore[score]?.value ?: 0L
+
+                table[score][length] = count
+                table[MAX_SCORE_POSSIBLE - score][100 - length] = count
+            }
+        }
     }
 
-    println("-------------")
-    println("Number of [distinct] ways: $num")
-}
+    println()
+    print("score")
+    (0..100).forEach { print(",$it") }
+    println()
 
-suspend fun countByScore(handLength: Int = HAND_LENGTH) {
-    println("List of all counts, by each score:")
-
-    var totalNum = 0L
-    val countsByScore = generateUniqueHandsOfLength(handLength).countByTo(TreeMap()) { it.score }
-
-    countsByScore.forEach { (score, num) ->
-        totalNum += num.value
-        println("${Points(score)} -> $num ways")
+    table.forEachIndexed { score, row ->
+        print("$score")
+        row.forEach { print(",$it") }
+        println()
     }
 
-    println("-------------")
-    println("Total number of [distinct] ways: $totalNum")
+    print("Total:")
+    (0..100).forEach { len -> table.asSequence().map { it[len] }.sum().also { print(",$it") } }
+    println()
 }
 
 fun main() = runBlocking {
-    countWaysForCertainScore()
-    println()
-    countByScore()
+    countAllUpTo()
 }

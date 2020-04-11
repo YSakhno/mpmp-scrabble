@@ -24,10 +24,10 @@ class AppKtTest : ShouldSpec({
 
     "Number of hands of length 7" {
         should("be correct for score 46") {
-            generateUniqueHandsOfLength(7).count { it.score == 46 } shouldBe 138
+            generateUniqueHandsOfLength(7).count { it == 46 } shouldBe 138
         }
         should("be correct for score 48") {
-            generateUniqueHandsOfLength(7).count { it.score == 48 } shouldBe 50
+            generateUniqueHandsOfLength(7).count { it == 48 } shouldBe 50
         }
     }
 

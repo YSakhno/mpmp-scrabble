@@ -54,6 +54,12 @@ class TileTest : ShouldSpec({
             tiles shouldBe letters
         }
     }
+
+    "Sum of points" {
+        should("be 187") {
+            Tile.values().sumBy { it.points.points * it.count } shouldBe MAX_SCORE_POSSIBLE
+        }
+    }
 })
 
 private fun List<Tile>.prettyPrint() = StringBuilder().also { builder ->
