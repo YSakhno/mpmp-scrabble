@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
-import org.apache.commons.lang3.mutable.MutableLong
 import kotlin.time.ExperimentalTime
 import kotlin.time.measureTimedValue
 
@@ -69,36 +68,22 @@ suspend fun generateUniqueHandsOfLength(targetHandLength: Int): Flow<Int> = flow
     generateScores(targetHandLength, 0, 0)
 }
 
-suspend inline fun <T, K, M : MutableMap<in K, MutableLong>> Flow<T>.countByTo(
-    destination: M,
-    crossinline keySelector: suspend (T) -> K
-) = collect { value ->
-    val key = keySelector(value)
-    val count = destination[key]
-
-    if (count != null) {
-        count.increment()
-    } else {
-        destination.put(key, MutableLong(1L))
-    }
-}.let { destination }
-
 @OptIn(ExperimentalTime::class)
 suspend fun countAllUpTo(minHandLength: Int = 0, maxHandLength: Int = 12) {
+    val countsByScore = LongArray(MAX_SCORE_POSSIBLE + 1)
     val table: MutableList<MutableList<Long>> = MutableList(MAX_SCORE_POSSIBLE + 1) { MutableList(101) { 0L } }
 
     println("Counting all hands of length:")
     for (length in minHandLength.coerceAtLeast(0)..maxHandLength.coerceAtMost(50)) {
         print("\t$length...")
-        val (countsByScore, time) = measureTimedValue {
-            generateUniqueHandsOfLength(length).countByTo(HashMap()) { it }
+        countsByScore.fill(0L)
+        val (_, time) = measureTimedValue {
+            generateUniqueHandsOfLength(length).collect { countsByScore[it]++ }
         }
         println("\tdone in $time")
 
-        for (score in 0..MAX_SCORE_POSSIBLE) {
-            if (countsByScore.containsKey(score)) {
-                val count = countsByScore[score]?.value ?: 0L
-
+        countsByScore.forEachIndexed { score, count ->
+            if (count != 0L) {
                 table[score][length] = count
                 table[MAX_SCORE_POSSIBLE - score][100 - length] = count
             }

@@ -41,7 +41,6 @@ dependencies {
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.5")
-    implementation("org.apache.commons:commons-lang3:3.10")
 
     testImplementation("io.kotest:kotest-runner-junit5-jvm:4.0.2")
     testImplementation("io.kotest:kotest-assertions-core-jvm:4.0.2")
