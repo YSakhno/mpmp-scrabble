@@ -31,7 +31,14 @@ class AppKtTest : ShouldSpec({
         }
     }
 
+    "Number of hands of length 0" {
+        should("be correct for score 0") {
+            generateUniqueHandsOfLength(0).count { it == 0 } shouldBe 1
+        }
+    }
+
     listOf(
+        row(0, 1),
         row(1, 27),
         row(2, 373),
         row(3, 3509),
