@@ -35,18 +35,16 @@ enum class Tile(val points: Points, val count: Int) {
     override fun toString() = if (this != BLANK) name else "_"
 }
 
-abstract class TileSet(val tiles: List<Tile>) {
+abstract class TileSet(val tiles: Array<Tile>) {
 
+    val points = tiles.map { it.points.points }.toIntArray()
     val indices = tiles.computeIndices()
-
-    fun areTilesEquivalent(idx1: Int, idx2: Int) =
-        (idx1 in tiles.indices && idx2 in tiles.indices && idx1 != idx2 && tiles[idx1] == tiles[idx2])
 
     override fun toString() = tiles.foldIndexed("") { idx, str, tile ->
         str + tile + (if ((idx + 1) % 10 == 0 && idx + 1 in tiles.indices) "\n" else "")
     }
 
-    private fun List<Tile>.computeIndices(): IntArray {
+    private fun Array<Tile>.computeIndices(): IntArray {
         val indices = IntArray(size)
         var i = 0
 
@@ -65,24 +63,28 @@ abstract class TileSet(val tiles: List<Tile>) {
 
 object ScrabbleTileSet : TileSet(
     Tile.values().flatMapTo(mutableListOf()) { tile -> Iterable { iterator { repeat(tile.count) { yield(tile) } } } }
-        .toList()
+        .toTypedArray()
 )
 
 private suspend fun FlowCollector<Int>.generateScores(needToPick: Int, nextIndex: Int, score: Int) {
-    if (needToPick > 0) {
-        var curIndex = nextIndex
+    var curIndex = nextIndex
 
-        while (curIndex <= ScrabbleTileSet.tiles.size - needToPick) {
-            generateScores(needToPick - 1, curIndex + 1, score + ScrabbleTileSet.tiles[curIndex].points.points)
-            curIndex = ScrabbleTileSet.indices[curIndex]
+    while (curIndex <= ScrabbleTileSet.points.size - needToPick) {
+        if (needToPick > 1) {
+            generateScores(needToPick - 1, curIndex + 1, score + ScrabbleTileSet.points[curIndex])
+        } else {
+            emit(score + ScrabbleTileSet.points[curIndex])
         }
-    } else {
-        emit(score)
+        curIndex = ScrabbleTileSet.indices[curIndex]
     }
 }
 
 suspend fun generateUniqueHandsOfLength(targetHandLength: Int): Flow<Int> = flow {
-    generateScores(targetHandLength, 0, 0)
+    if (targetHandLength > 0) {
+        generateScores(targetHandLength, 0, 0)
+    } else {
+        emit(0)
+    }
 }
 
 @OptIn(ExperimentalTime::class)

@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 /*
  * Solver for Matt Parker's Maths Puzzle (MPMP): Scrabble
  *
@@ -8,6 +6,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
  *
  * Written in 2020 by Yuri Sakhno.
  */
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.3.71"
