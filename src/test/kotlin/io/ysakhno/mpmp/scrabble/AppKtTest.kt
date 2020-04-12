@@ -12,7 +12,6 @@ import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.data.row
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.count
 
 /**
  * Contains tests for some functions of the main app file (**App.kt**).
@@ -23,17 +22,25 @@ import kotlinx.coroutines.flow.count
 class AppKtTest : ShouldSpec({
 
     "Number of hands of length 7" {
-        should("be correct for score 46") {
-            generateUniqueHandsOfLength(7).count { it == 46 } shouldBe 138
-        }
-        should("be correct for score 48") {
-            generateUniqueHandsOfLength(7).count { it == 48 } shouldBe 50
+        listOf(
+            row(46, 138),
+            row(48, 50)
+        ).map { (score, count) ->
+            should("be correct for score $score") {
+                val countsByScore = LongArray(MAX_SCORE_POSSIBLE + 1) { 0L }
+
+                generateUniqueHandsOfLength(7, countsByScore)
+                countsByScore[score] shouldBe count
+            }
         }
     }
 
     "Number of hands of length 0" {
         should("be correct for score 0") {
-            generateUniqueHandsOfLength(0).count { it == 0 } shouldBe 1
+            val countsByScore = LongArray(MAX_SCORE_POSSIBLE + 1) { 0L }
+
+            generateUniqueHandsOfLength(0, countsByScore)
+            countsByScore[0] shouldBe 1
         }
     }
 
@@ -49,7 +56,10 @@ class AppKtTest : ShouldSpec({
         row(8, 12353822)
     ).map { (handLength, handCount) ->
         "Number of hands of length $handLength should be correct" {
-            generateUniqueHandsOfLength(handLength).count() shouldBe handCount
+            val countsByScore = LongArray(MAX_SCORE_POSSIBLE + 1) { 0L }
+
+            generateUniqueHandsOfLength(handLength, countsByScore)
+            countsByScore.sum() shouldBe handCount
         }
     }
 })

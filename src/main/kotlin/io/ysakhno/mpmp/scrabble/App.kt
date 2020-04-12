@@ -9,10 +9,6 @@
 package io.ysakhno.mpmp.scrabble
 
 import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -78,36 +74,29 @@ object ScrabbleTileSet : TileSet(
         .toTypedArray()
 )
 
-private suspend fun FlowCollector<Int>.generateScores(needToPick: Int, nextIndex: Int, score: Int) {
+private fun generateScores(needToPick: Int, nextIndex: Int, score: Int, countsByScore: LongArray) {
     var curIndex = nextIndex
 
     while (curIndex <= ScrabbleTileSet.points.size - needToPick) {
         if (needToPick > 1) {
-            generateScores(needToPick - 1, curIndex + 1, score + ScrabbleTileSet.points[curIndex])
+            generateScores(needToPick - 1, curIndex + 1, score + ScrabbleTileSet.points[curIndex], countsByScore)
         } else {
-            emit(score + ScrabbleTileSet.points[curIndex])
+            countsByScore[score + ScrabbleTileSet.points[curIndex]]++
         }
         curIndex = ScrabbleTileSet.indices[curIndex]
     }
 }
 
-suspend fun generateUniqueHandsOfLength(targetHandLength: Int): Flow<Int> = flow {
+fun generateUniqueHandsOfLength(targetHandLength: Int, countsByScore: LongArray) {
     if (targetHandLength > 0) {
-        generateScores(targetHandLength, 0, 0)
+        generateScores(targetHandLength, 0, 0, countsByScore)
     } else {
-        emit(0)
+        countsByScore[0]++
     }
 }
 
 @OptIn(ExperimentalTime::class)
-suspend fun countByScore(handLength: Int, countsByScore: LongArray) {
-    val generator = generateUniqueHandsOfLength(handLength)
-    val time = measureTime { generator.collect { countsByScore[it]++ } }
-
-    println("Counted hands of length $handLength in $time (${appRunTimeMark.elapsedNow()} since app start)")
-}
-
-suspend fun countAllUpTo(minHandLength: Int = 0, maxHandLength: Int = 12) {
+suspend fun countAllUpTo(minHandLength: Int = 0, maxHandLength: Int = 14) {
     val minLength = minHandLength.coerceAtLeast(0)
     val maxLength = maxHandLength.coerceAtMost(50)
     val allCounts = Array(maxLength + 1) { LongArray(MAX_SCORE_POSSIBLE + 1) }
@@ -116,7 +105,9 @@ suspend fun countAllUpTo(minHandLength: Int = 0, maxHandLength: Int = 12) {
     withContext(dispatcher) {
         for (length in minLength..maxLength) {
             launch {
-                countByScore(length, allCounts[length])
+                val time = measureTime { generateUniqueHandsOfLength(length, allCounts[length]) }
+
+                println("Counted hands of length $length in $time (${appRunTimeMark.elapsedNow()} since app start)")
             }
         }
     }
