@@ -37,11 +37,29 @@ enum class Tile(val points: Points, val count: Int) {
 
 abstract class TileSet(val tiles: List<Tile>) {
 
+    val indices = tiles.computeIndices()
+
     fun areTilesEquivalent(idx1: Int, idx2: Int) =
         (idx1 in tiles.indices && idx2 in tiles.indices && idx1 != idx2 && tiles[idx1] == tiles[idx2])
 
     override fun toString() = tiles.foldIndexed("") { idx, str, tile ->
         str + tile + (if ((idx + 1) % 10 == 0 && idx + 1 in tiles.indices) "\n" else "")
+    }
+
+    private fun List<Tile>.computeIndices(): IntArray {
+        val indices = IntArray(size)
+        var i = 0
+
+        while (i < size) {
+            var j = i+1
+
+            while (j < size && this[i] == this[j]) j++
+
+            indices.fill(j, i, j)
+            i = j
+        }
+
+        return indices
     }
 }
 
@@ -52,12 +70,11 @@ object ScrabbleTileSet : TileSet(
 
 private suspend fun FlowCollector<Int>.generateScores(needToPick: Int, nextIndex: Int, score: Int) {
     if (needToPick > 0) {
-        var lastUsedIdx = -1
-        for (curIndex in nextIndex..ScrabbleTileSet.tiles.size - needToPick) {
-            if (!ScrabbleTileSet.areTilesEquivalent(curIndex, lastUsedIdx)) {
-                generateScores(needToPick - 1, curIndex + 1, score + ScrabbleTileSet.tiles[curIndex].points.points)
-                lastUsedIdx = curIndex
-            }
+        var curIndex = nextIndex
+
+        while (curIndex <= ScrabbleTileSet.tiles.size - needToPick) {
+            generateScores(needToPick - 1, curIndex + 1, score + ScrabbleTileSet.tiles[curIndex].points.points)
+            curIndex = ScrabbleTileSet.indices[curIndex]
         }
     } else {
         emit(score)
