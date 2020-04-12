@@ -12,7 +12,6 @@ import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import java.util.TreeMap
-import kotlin.text.StringBuilder
 
 /**
  * Contains tests for the [Tile] class. These tests basically test that the initial conditions were imported correctly
