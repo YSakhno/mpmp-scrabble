@@ -40,9 +40,12 @@ dependencies {
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.5")
+    implementation("com.github.oshi:oshi-core:4.6.1")
 
     testImplementation("io.kotest:kotest-runner-junit5-jvm:4.0.2")
     testImplementation("io.kotest:kotest-assertions-core-jvm:4.0.2")
+
+    runtimeOnly("org.slf4j:slf4j-nop:1.7.30")
 }
 
 val compileKotlin: KotlinCompile by tasks

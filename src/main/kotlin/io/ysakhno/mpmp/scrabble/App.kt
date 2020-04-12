@@ -8,15 +8,27 @@
  */
 package io.ysakhno.mpmp.scrabble
 
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import oshi.SystemInfo
+import java.util.concurrent.Executors
 import kotlin.time.ExperimentalTime
-import kotlin.time.measureTimedValue
+import kotlin.time.TimeSource
+import kotlin.time.measureTime
 
 const val MAX_SCORE_POSSIBLE = 187
+
+private val numCpu = SystemInfo().hardware.processor.physicalProcessorCount
+private val dispatcher =  Executors.newFixedThreadPool(numCpu).asCoroutineDispatcher()
+
+@OptIn(ExperimentalTime::class)
+private val appRunTimeMark = TimeSource.Monotonic.markNow()
 
 inline class Points(val points: Int) : Comparable<Points> {
     override fun compareTo(other: Points) = this.points.compareTo(other.points)
@@ -88,19 +100,31 @@ suspend fun generateUniqueHandsOfLength(targetHandLength: Int): Flow<Int> = flow
 }
 
 @OptIn(ExperimentalTime::class)
+suspend fun countByScore(handLength: Int, countsByScore: LongArray) {
+    val generator = generateUniqueHandsOfLength(handLength)
+    val time = measureTime { generator.collect { countsByScore[it]++ } }
+
+    println("Counted hands of length $handLength in $time (${appRunTimeMark.elapsedNow()} since app start)")
+}
+
 suspend fun countAllUpTo(minHandLength: Int = 0, maxHandLength: Int = 12) {
-    val countsByScore = LongArray(MAX_SCORE_POSSIBLE + 1)
+    val minLength = minHandLength.coerceAtLeast(0)
+    val maxLength = maxHandLength.coerceAtMost(50)
+    val allCounts = Array(maxLength + 1) { LongArray(MAX_SCORE_POSSIBLE + 1) }
+
+    println("Counting all hands of lengths $minLength to $maxLength.  Please wait...")
+    withContext(dispatcher) {
+        for (length in minLength..maxLength) {
+            launch {
+                countByScore(length, allCounts[length])
+            }
+        }
+    }
+    dispatcher.close()
+
     val table: MutableList<MutableList<Long>> = MutableList(MAX_SCORE_POSSIBLE + 1) { MutableList(101) { 0L } }
 
-    println("Counting all hands of length:")
-    for (length in minHandLength.coerceAtLeast(0)..maxHandLength.coerceAtMost(50)) {
-        print("\t$length...")
-        countsByScore.fill(0L)
-        val (_, time) = measureTimedValue {
-            generateUniqueHandsOfLength(length).collect { countsByScore[it]++ }
-        }
-        println("\tdone in $time")
-
+    allCounts.forEachIndexed { length, countsByScore ->
         countsByScore.forEachIndexed { score, count ->
             if (count != 0L) {
                 table[score][length] = count
