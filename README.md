@@ -24,9 +24,14 @@ Once JDK is properly installed, run the following command:
 ## What it does
 
 By default (as is), it solves for the puzzle/case presented in the video (hand of 7 out of 100 standard Scrabble tiles,
-exact hand score has to be _exactly_ 46) and outputs all such hands followed by the total number of hands.
+hand score has to be _exactly_ 46) and outputs all such hands followed by the total number of hands.
 
 If you wish, you can edit the main application file (`App.kt`) and change the constants at the top of the file to see
 a solution for different input conditions.
 
-Alternatively, you can see the full output [here](SPOILERS.md)
+## Alternative (extended) solution
+
+The branch [`extended`](https://github.com/YSakhno/mpmp-scrabble/tree/extended) contains extended solver that finds
+additional information (like the counts of hands that produce other scores than 46, or counts for hands of lengths other
+than 7).  You may check the code in that branch out (and try to run it), or you can see the information produced by that
+solver version [here](SPOILERS.md)
